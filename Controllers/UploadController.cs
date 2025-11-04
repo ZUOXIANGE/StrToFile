@@ -1,8 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using StrToFile.Models;
 using System.ComponentModel.DataAnnotations;
-using System.IO.Compression;
-using System.Text;
+using StrToFile.Services;
 
 namespace StrToFile.Controllers;
 
@@ -40,43 +39,7 @@ public class UploadController : ControllerBase
                 return BadRequest(new { error = "上传文件不能为空" });
             }
 
-            var result = new List<FileItem>();
-
-            foreach (var file in zipFile)
-            {
-                if (file == null || file.Length == 0)
-                {
-                    return BadRequest(new { error = "存在空文件，请检查上传的ZIP" });
-                }
-
-                var fileName = file.FileName ?? string.Empty;
-                if (!fileName.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
-                {
-                    _logger.LogWarning("上传的文件扩展名并非 .zip: {FileName}", fileName);
-                }
-
-                using var inputStream = file.OpenReadStream();
-                using var archive = new ZipArchive(inputStream, ZipArchiveMode.Read, leaveOpen: false);
-
-                foreach (var entry in archive.Entries)
-                {
-                    // 目录条目没有 Name，仅有 FullName
-                    if (string.IsNullOrEmpty(entry.Name))
-                        continue;
-
-                    using var entryStream = entry.Open();
-                    // 尝试按 UTF-8（含 BOM）读取为文本内容
-                    using var reader = new StreamReader(entryStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
-                    var content = await reader.ReadToEndAsync();
-
-                    result.Add(new FileItem
-                    {
-                        FileName = entry.FullName.Replace('\\', '/'),
-                        Content = content
-                    });
-                }
-            }
-
+            var result = await ZipParser.ParseZipFilesAsync(zipFile, _logger);
             _logger.LogInformation("ZIP 解析完成，得到 {Count} 个文件项，源ZIP数量 {ZipCount}", result.Count, zipFile.Count);
             return Ok(result);
         }
