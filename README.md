@@ -58,6 +58,43 @@
 
 返回 API 的基本信息和端点列表。
 
+### 5. POST /api/upload/parse-zip
+**上传ZIP并解析为文件列表**
+
+接收一个 `multipart/form-data` 的 ZIP 文件，解析其中的每个文件为 `FileItem`（包含 `fileName` 与 `content` 字段），返回 `List<FileItem>`。
+
+**curl 示例**:
+```bash
+curl -X POST "http://localhost:5000/api/upload/parse-zip" \
+  -H "Accept: application/json" \
+  -F "zipFile=@./files.zip" \
+  -o parsed.json
+```
+
+**返回示例**:
+```json
+[
+  {
+    "fileName": "readme.txt",
+    "content": "这是ZIP中的readme内容..."
+  },
+  {
+    "fileName": "config/app.json",
+    "content": "{\n  \"name\": \"StrToFile API\"\n}"
+  }
+]
+```
+
+支持一次上传多个ZIP文件（字段名均为 `zipFile`）：
+
+```bash
+curl -X POST "http://localhost:5000/api/upload/parse-zip" \
+  -H "Accept: application/json" \
+  -F "zipFile=@./a.zip" \
+  -F "zipFile=@./b.zip" \
+  -o parsed.json
+```
+
 ## 快速开始
 
 ### 1. 运行项目
@@ -92,6 +129,17 @@ curl -X POST "https://localhost:5001/api/download/download-zip" \
     }
   ]' \
   -o custom.zip
+
+# 测试上传ZIP并解析
+curl -X POST "https://localhost:5001/api/upload/parse-zip" \
+  -H "Accept: application/json" \
+  -F "zipFile=@./files.zip"
+
+# 测试一次上传多个ZIP并解析
+curl -X POST "https://localhost:5001/api/upload/parse-zip" \
+  -H "Accept: application/json" \
+  -F "zipFile=@./a.zip" \
+  -F "zipFile=@./b.zip"
 ```
 
 #### 使用 JavaScript 测试
